@@ -4,8 +4,8 @@
  * functions for this assignment.  Make sure to add your name and
  * @oregonstate.edu email address below:
  *
- * Name:
- * Email:
+ * Name:Li Hung Chen
+ * Email:chenlih@oregonstate.edu
  */
 
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #include "bst.h"
-
+#include "stack.h"
 /*
  * This structure represents a single node in a BST.
  */
@@ -30,7 +30,7 @@ struct bst_node {
  */
 struct bst {
   struct bst_node* root;
-};
+}; 
 
 
 struct bst* bst_create() {
@@ -312,7 +312,10 @@ int bst_contains(int val, struct bst* bst) {
  * This is the structure you will use to create an in-order BST iterator.  It
  * is up to you how to define this structure.
  */
-struct bst_iterator;
+struct bst_iterator{
+	struct stack* temp;
+	struct stack* order;
+};;
 
 
 /*
@@ -326,7 +329,18 @@ struct bst_iterator;
  *   Should return the total number of elements stored in bst.
  */
 int bst_size(struct bst* bst) {
-  return 0;
+	int nodesize(struct bst_node* bst_node){								//change bst into node
+		if(bst_node==NULL)													
+		return 0;
+		
+		else
+		return(nodesize(bst_node->left)+nodesize(bst_node->right)+1);		//recursive, down to the leaf and count from the bottom
+	}
+	if(bst_isempty(bst)){
+		return 0;
+	}
+	else
+  		return(nodesize(bst->root));
 }
 
 
@@ -343,7 +357,21 @@ int bst_size(struct bst* bst) {
  *   Should return the height of bst.
  */
 int bst_height(struct bst* bst) {
-  return 0;
+	int nodeheight(struct bst_node* bst_node){
+		if(bst_node==NULL)
+		return -1;
+		
+		else{
+			int l_height=nodeheight(bst_node->left);			//find the further one from root
+			int r_height=nodeheight(bst_node->right);			
+			
+			if(l_height>r_height)								//compare left or right is greater and return
+			return (l_height+1);
+			else return (r_height+1);
+		}
+	}
+	
+	return (nodeheight(bst->root));
 }
 
 
@@ -360,7 +388,24 @@ int bst_height(struct bst* bst) {
  *   the values of the nodes add up to sum.  Should return 0 otherwise.
  */
 int bst_path_sum(int sum, struct bst* bst) {
-  return 0;
+  
+  int pathsum(int sum, struct bst_node* bst_node){								//use minus to find the path 
+		
+		if(bst_node==NULL) 
+		return 0;
+		
+		if(sum==bst_node->val && bst_node->left==NULL && bst_node->right==NULL)	//if reach the leaf and subSum==0
+		return 1;
+		
+		else 
+		return( pathsum( (sum-bst_node->val), bst_node->left) || pathsum( (sum-bst_node->val), bst_node->right) );
+	}
+	
+	if(pathsum(sum, bst->root))	
+	return 1;
+	
+	else 
+	return 0;
 }
 
 
@@ -377,7 +422,30 @@ int bst_path_sum(int sum, struct bst* bst) {
  *   value in bst (i.e. the leftmost value in the tree).
  */
 struct bst_iterator* bst_iterator_create(struct bst* bst) {
-  return NULL;
+	
+  assert(bst);
+  
+  struct bst_iterator* bic=malloc(sizeof(struct bst_iterator));
+  struct bst_node* transnode;
+  bic->temp=stack_create();
+  bic->order=stack_create();
+  
+  void pushroot(struct bst_node* s_node, struct stack* temp){		//put the right node into stack
+  	while(s_node){
+  		stack_push(temp, s_node);
+  		s_node=s_node->right;
+	  }
+    }
+	
+	pushroot(bst->root, bic->temp);			    //put root into temp stack
+	
+	while(!stack_isempty(bic->temp)){		    
+		transnode= stack_pop(bic->temp);		//point to the temp_stack
+		stack_push(bic->order, transnode);		//put transnode into order_stack
+		pushroot(transnode->left, bic->temp);
+	}  
+  return bic;
+
 }
 
 /*
@@ -387,7 +455,10 @@ struct bst_iterator* bst_iterator_create(struct bst* bst) {
  *   iter - the iterator whose memory is to be freed.  May not be NULL.
  */
 void bst_iterator_free(struct bst_iterator* iter) {
-
+assert(iter);
+stack_free(iter->temp);		//free the temp and order stack
+stack_free(iter->order);
+free(iter);					//free the iter
 }
 
 
@@ -400,7 +471,8 @@ void bst_iterator_free(struct bst_iterator* iter) {
  *   iter - the iterator to be checked for more values.  May not be NULL.
  */
 int bst_iterator_has_next(struct bst_iterator* iter) {
-  return 0;
+  assert(iter);
+  return (!stack_isempty(iter->order));			//check order stack, if there still has value, then return
 }
 
 
@@ -413,5 +485,8 @@ int bst_iterator_has_next(struct bst_iterator* iter) {
  *     and must have at least one more value to be returned.
  */
 int bst_iterator_next(struct bst_iterator* iter) {
+  assert(iter);
+  int *a= stack_pop(iter->order);
+  return *(a);
   return 0;
 }
